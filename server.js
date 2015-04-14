@@ -23,10 +23,27 @@ var mimeTypes = {
   '.html': 'text/html',
   '.css': 'text/css'
 };
+//cache
+var cache = {};
 
-/**
-here the script to create the server
-**/
+function cacheAndDeliver(f, cb) {
+    if (!cache[f]) {
+      fs.readFile(f, function(err, data) {
+        if (!err) {
+          cache[f] = {
+            content: data
+          };
+        }
+        cb(err, data);
+      });
+      return;
+    }
+    console.log('loading ' + f + ' from cache');
+    cb(null, cache[f].content);
+  }
+  /**
+  here the script to create the server
+  **/
 http.createServer(function(request, response) {
   var lookup = decodeURI(request.url) || 'master.html';
 
@@ -41,7 +58,7 @@ http.createServer(function(request, response) {
   var f = 'content/' + lookup;
   fs.exists(f, function(exists) {
     if (exists) {
-      fs.readFile(f, function(err, data) {
+      cacheAndDeliver(f, function(err, data) {
         if (err) {
           response.writeHead(500);
           response.end('Server Error!');
